@@ -58,7 +58,7 @@ port=""
 quiet=0
 unknown_are_stopped=0
 
-action="reset"         # Default fence action
+action="list"         # Default fence action
 
 # Inherit from the environment if present
 os_region="$OS_REGION_NAME"
