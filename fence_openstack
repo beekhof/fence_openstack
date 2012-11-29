@@ -257,11 +257,16 @@ while true ; do
     esac
 done
 
+# Normalize the action
 action=`echo $action | tr 'A-Z' 'a-z'`
-
-if [ "$action" = "metadata" ]; then
-    metadata
-fi
+case $action in
+    hostlist|list) action=list;;
+    stat|status)   action=status;;
+    reboot|reset)  action=reboot;;
+    poweron|on)    action=start;;
+    poweroff|off)  action=stop;;
+    ;;
+esac
 
 nova="nova --os-username $os_user --os-password $os_pass --os-tenant-name $os_tenant --os-auth-url $os_home"
 
@@ -271,20 +276,24 @@ if [ ! -z "$port" ]; then
 fi
 
 case $action in 
-    monitor)
-	# Is the device ok?
-	$nova list
-	;;
-    hostlist|list)
+    metadata) metadata;;
+
+    list)
 	# List of names we know about
 	$nova list | grep -v -e Status -e --- | awk '{print $4 " " $2}'
 	;;
-    metadata)
-	metadata
+
+    monitor)
+	# Is the device ok?
+	$nova list &> /dev/null
+	if [ $? != 0 ] then
+	    # If there is a problem, we're probably interested in the output
+	    $nova list 1>&2
+	fi
 	;;
-    stat|status)
+
+    status)
 	state=`status_for_port $instance`
-	echo $state
 	case $state in
 	    ACTIVE)    fence_done 0;;
 	    STOPPED)   fence_done 1;;
@@ -295,11 +304,11 @@ case $action in
 	esac
 	;;
 
-    reboot|reset)
+    reboot)
 	state=`status_for_port $instance`
 	case $state in
 	    UNKNOWN) 
-		error "Cannot perform $action action on unknown instance: $port"
+		error "Cannot $action unknown instance: $port"
 		fence_done 1
 		;;
 	    SUSPENDED) 
@@ -307,21 +316,21 @@ case $action in
 		while [ $state != ACTIVE ]; do
 		    state=`status_for_port $instance`
 		done
-		$nova reboot $instance;;
+		$nova $action $instance;;
 	    ;;
 	    PAUSED)
 		$nova unpause $instance
 		while [ $state != ACTIVE ]; do
 		    state=`status_for_port $instance`
 		done
-		$nova reboot $instance;;
-	    ACTIVE)  $nova reboot $instance;;
+		$nova $action $instance;;
+	    ACTIVE)  $nova $action $instance;;
 	    STOPPED) $nova start $instance;;
-	    *) error "Cannot perform $action action on instance $port in unexpected state: $status"; fence_done 1;;
+	    *) error "Cannot $action instance $port in unexpected state: $status"; fence_done 1;;
 	esac
 	;;
 
-    poweron|on)
+    start)
 	state=`status_for_port $instance`
 	case $state in
 	    UNKNOWN) 
@@ -331,12 +340,12 @@ case $action in
 	    SUSPENDED) $nova resume $instance;;
 	    PAUSED)    $nova unpause $instance;;
 	    ACTIVE)    debug "Already active";;
-	    STOPPED)   $nova start $instance;;
-	    *) error "Cannot perform $action action on instance $port in unexpected state: $status"; fence_done 1;;
+	    STOPPED)   $nova $action $instance;;
+	    *) error "Cannot $action instance $port in unexpected state: $status"; fence_done 1;;
 	esac
 	;;
 
-    poweroff|off)
+    stop)
 	state=`status_for_port $instance`
 	case $state in
 	    UNKNOWN) 
@@ -348,7 +357,7 @@ case $action in
 		# But for all intensive purposes they are already in a safe state
 		debug "$instance is $state"
 		;;
-	    ACTIVE)    $nova stop $instance;;
+	    ACTIVE)    $nova $action $instance;;
 	    *) error "Cannot perform $action action on instance $port in unexpected state: $status"; fence_done 1;;
 	esac
 	;;
