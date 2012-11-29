@@ -183,6 +183,7 @@ function fence_done()
     else
 	error "Operation $action (port=$port) failed: $1"
     fi
+    exit $1
 }
 
 function instance_for_port()
@@ -265,10 +266,9 @@ case $action in
     reboot|reset)  action=reboot;;
     poweron|on)    action=start;;
     poweroff|off)  action=stop;;
-    ;;
 esac
 
-nova="nova --os-username $os_user --os-password $os_pass --os-tenant-name $os_tenant --os-auth-url $os_home"
+nova="nova --os-username $os_user --os-password $os_pass --os-tenant-name $os_tenant --os-auth-url $os_auth"
 
 instance=""
 if [ ! -z "$port" ]; then
@@ -286,7 +286,7 @@ case $action in
     monitor)
 	# Is the device ok?
 	$nova list &> /dev/null
-	if [ $? != 0 ] then
+	if [ $? != 0 ]; then
 	    # If there is a problem, we're probably interested in the output
 	    $nova list 1>&2
 	fi
@@ -316,8 +316,8 @@ case $action in
 		while [ $state != ACTIVE ]; do
 		    state=`status_for_port $instance`
 		done
-		$nova $action $instance;;
-	    ;;
+		$nova $action $instance
+	        ;;
 	    PAUSED)
 		$nova unpause $instance
 		while [ $state != ACTIVE ]; do
