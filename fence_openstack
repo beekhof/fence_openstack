@@ -85,7 +85,7 @@ Commands:
  -n, --port 		The name of a machine/instance to control/check
 
 Additional Options:
- -h, --home	 	The OpenStack authentication URL (eg. http://open.stack:5000/v2.0/)
+ -a, --auth	 	The OpenStack authentication URL (eg. http://open.stack:5000/v2.0/)
  -r, --region		The OpenStack region for which the device should control instances (defaults to us-east-1)
  -t, --tenant		The OpenStack tenant name. Might match the username.
  -u, --user		The OpenStack username to connect as
@@ -117,8 +117,8 @@ $description
 		<content type="string" />
 		<shortdesc lang="en">The name/id of a instance to control/check</shortdesc>
 	</parameter>
-	<parameter name="home" unique="0" required="0">
-		<getopt mixed="-h, --home=[url]" />
+	<parameter name="auth" unique="0" required="0">
+		<getopt mixed="-a, --auth=[url]" />
 		<content type="string" />
 		<shortdesc lang="en">The OpenStack authentication URL (eg. http://open.stack:5000/v2.0/)</shortdesc>
 	</parameter>
